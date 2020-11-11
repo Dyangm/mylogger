@@ -40,9 +40,9 @@ func (f *MyJSONFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	bytes, _ := jf.Format(entry)
 
 	json.Unmarshal(bytes, &f)
-	lastIndex := strings.LastIndex(f.File, `/`)
-	lastIndex = strings.LastIndex(f.File[:lastIndex], `/`)
-	file := f.File[lastIndex+1:]
+	lastIndex := strings.LastIndex(entry.Caller.File, `/`)
+	lastIndex = strings.LastIndex(entry.Caller.File[:lastIndex], `/`)
+	file := entry.Caller.File[lastIndex+1:] + fmt.Sprintf(":%d", entry.Caller.Line)
 	f.Time = entry.Time.Format("2006-01-02 15:04:05.000")
 	var serialized []byte
 	var err error
