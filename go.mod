@@ -1,5 +1,3 @@
-module git.homewell.com.cn/efm/mylogger
+module github.com/Dyangm/mylogger
 
-go 1.13
-
-require github.com/sirupsen/logrus v1.4.2
+go 1.15
