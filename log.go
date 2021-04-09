@@ -6,9 +6,10 @@ import (
 
 	"bytes"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"sort"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type MyJSONFormatter struct {
@@ -40,14 +41,17 @@ func (f *MyJSONFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	bytes, _ := jf.Format(entry)
 
 	json.Unmarshal(bytes, &f)
-	lastIndex := strings.LastIndex(entry.Caller.File, `/`)
-	lastIndex = strings.LastIndex(entry.Caller.File[:lastIndex], `/`)
-	file := entry.Caller.File[lastIndex+1:] + fmt.Sprintf(":%d", entry.Caller.Line)
+
+	if entry.Caller != nil {
+		lastIndex := strings.LastIndex(entry.Caller.File, `/`)
+		lastIndex = strings.LastIndex(entry.Caller.File[:lastIndex], `/`)
+		f.File = entry.Caller.File[lastIndex+1:] + fmt.Sprintf(":%d", entry.Caller.Line)
+		data["file"] = f.File
+	}
 	f.Time = entry.Time.Format("2006-01-02 15:04:05.000")
 	var serialized []byte
 	var err error
 	if len(data) > 0 {
-		data["file"] = file
 		data["time"] = f.Time
 		data["msg"] = entry.Message
 		data["level"] = entry.Level.String()
@@ -57,7 +61,6 @@ func (f *MyJSONFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 			return nil, fmt.Errorf("FailEd to marshal fields to JSON, %v", err)
 		}
 	} else {
-		f.File = file
 		serialized, err = json.Marshal(f)
 		if err != nil {
 			return nil, fmt.Errorf("FailEd to marshal fields to JSON, %v", err)
@@ -77,17 +80,18 @@ func (myF *MyTextFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	if !logrustF.DisableSorting {
 		sort.Strings(keys)
 	}
-
-	skip := 8
-	if len(keys) > 0 {
-		skip = 6
-	}
-	file, line := getSource(skip)
-	myF.File = fmt.Sprintf("%s:%d", file, line)
-
 	appendKeyValue(b, "time", entry.Time.Format("2006-01-02 15:04:05.000"))
-	appendKeyValue(b, "address", myF.File)
 	appendKeyValue(b, "level", entry.Level.String())
+
+	if entry.Caller != nil {
+		lastIndex := strings.LastIndex(entry.Caller.File, `/`)
+		lastIndex = strings.LastIndex(entry.Caller.File[:lastIndex], `/`)
+		file := entry.Caller.File[lastIndex+1:] + fmt.Sprintf(":%d", entry.Caller.Line)
+
+		myF.File = file
+		appendKeyValue(b, "address", myF.File)
+	}
+
 	if entry.Message != "" {
 		appendKeyValue(b, "msg", entry.Message)
 	}
